@@ -59,40 +59,27 @@ public class FlutterPDFView implements PlatformView, MethodCallHandler {
                     .pageSnap(getBoolean(params, "pageSnap"))
                     .pageFitPolicy(getFitPolicy(params))
                     .enableAnnotationRendering(true)
-                    .linkHandler(linkHandler).
-                    enableAntialiasing(false)
-                    // .fitEachPage(getBoolean(params,"fitEachPage"))
-                    .onPageChange(new OnPageChangeListener() {
-                        @Override
-                        public void onPageChanged(int page, int total) {
-                            Map<String, Object> args = new HashMap<>();
-                            args.put("page", page);
-                            args.put("total", total);
-                            methodChannel.invokeMethod("onPageChanged", args);
-                        }
-                    }).onError(new OnErrorListener() {
-                @Override
-                public void onError(Throwable t) {
-                    Map<String, Object> args = new HashMap<>();
-                    args.put("error", t.toString());
-                    methodChannel.invokeMethod("onError", args);
-                }
-            }).onPageError(new OnPageErrorListener() {
-                @Override
-                public void onPageError(int page, Throwable t) {
-                    Map<String, Object> args = new HashMap<>();
-                    args.put("page", page);
-                    args.put("error", t.toString());
-                    methodChannel.invokeMethod("onPageError", args);
-                }
-            }).onRender(new OnRenderListener() {
-                @Override
-                public void onInitiallyRendered(int pages) {
-                    Map<String, Object> args = new HashMap<>();
-                    args.put("pages", pages);
-                    methodChannel.invokeMethod("onRender", args);
-                }
-            }).enableDoubletap(true).defaultPage(getInt(params, "defaultPage")).load();
+                    .linkHandler(linkHandler)
+                    .enableAntialiasing(true)
+                    .onPageChange((page, total) -> {
+                        Map<String, Object> args = new HashMap<>();
+                        args.put("page", page);
+                        args.put("total", total);
+                        methodChannel.invokeMethod("onPageChanged", args);
+                    }).onError(t -> {
+                        Map<String, Object> args = new HashMap<>();
+                        args.put("error", t.toString());
+                        methodChannel.invokeMethod("onError", args);
+                    }).onPageError((page, t) -> {
+                        Map<String, Object> args = new HashMap<>();
+                        args.put("page", page);
+                        args.put("error", t.toString());
+                        methodChannel.invokeMethod("onPageError", args);
+                    }).onRender(pages -> {
+                        Map<String, Object> args = new HashMap<>();
+                        args.put("pages", pages);
+                        methodChannel.invokeMethod("onRender", args);
+                    }).enableDoubletap(true).defaultPage(getInt(params, "defaultPage")).load();
         }
     }
 
