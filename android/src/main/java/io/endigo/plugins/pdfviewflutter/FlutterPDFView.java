@@ -79,6 +79,7 @@ public class FlutterPDFView implements PlatformView, MethodCallHandler {
                         Map<String, Object> args = new HashMap<>();
                         args.put("pages", pages);
                         methodChannel.invokeMethod("onRender", args);
+                        pdfView.fitToWidth(pages);
                     }).enableDoubletap(true).defaultPage(getInt(params, "defaultPage")).load();
         }
     }
