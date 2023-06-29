@@ -138,7 +138,7 @@ class _PDFViewState extends State<PDFView> {
           );
         },
         onCreatePlatformView: (PlatformViewCreationParams params) {
-          return PlatformViewsService.initSurfaceAndroidView(
+          return PlatformViewsService.initExpensiveAndroidView(
             id: params.id,
             viewType: 'plugins.endigo.io/pdfview',
             layoutDirection: TextDirection.rtl,

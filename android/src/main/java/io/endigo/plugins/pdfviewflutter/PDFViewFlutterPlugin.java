@@ -6,14 +6,14 @@ import io.flutter.embedding.engine.plugins.FlutterPlugin;
 import io.flutter.plugin.common.BinaryMessenger;
 
 public class PDFViewFlutterPlugin implements FlutterPlugin {
-    /**
-     * Plugin registration.
-     */
+
+     private static final String PLUGIN_NAME  = "plugins.endigo.io/pdfview";
+
     @Override
     public void onAttachedToEngine(@NonNull FlutterPluginBinding binding) {
         binding
                 .getPlatformViewRegistry()
-                .registerViewFactory("plugins.endigo.io/pdfview", new PDFViewFactory(binding.getBinaryMessenger()));
+                .registerViewFactory(PLUGIN_NAME, new PDFViewFactory(binding.getBinaryMessenger()));
     }
 
     @Override

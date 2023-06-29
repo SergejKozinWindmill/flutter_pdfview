@@ -2,85 +2,42 @@ package io.endigo.plugins.pdfviewflutter;
 
 import android.content.Context;
 import android.view.View;
-import android.net.Uri;
-
 import io.flutter.plugin.common.BinaryMessenger;
 import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler;
 import io.flutter.plugin.common.MethodChannel.Result;
 import io.flutter.plugin.platform.PlatformView;
-
-import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
-
 import com.github.barteksc.pdfviewer.PDFView;
 import com.github.barteksc.pdfviewer.PDFView.Configurator;
-import com.github.barteksc.pdfviewer.listener.*;
-import com.github.barteksc.pdfviewer.util.Constants;
-import com.github.barteksc.pdfviewer.util.FitPolicy;
-
-import com.github.barteksc.pdfviewer.link.LinkHandler;
 
 public class FlutterPDFView implements PlatformView, MethodCallHandler {
     private final PDFView pdfView;
     private final MethodChannel methodChannel;
-    private final LinkHandler linkHandler;
 
     @SuppressWarnings("unchecked")
     FlutterPDFView(Context context, BinaryMessenger messenger, int id, Map<String, Object> params) {
         pdfView = new PDFView(context, null);
-        final boolean preventLinkNavigation = getBoolean(params, "preventLinkNavigation");
-
         methodChannel = new MethodChannel(messenger, "plugins.endigo.io/pdfview_" + id);
         methodChannel.setMethodCallHandler(this);
 
-        linkHandler = new PDFLinkHandler(context, pdfView, methodChannel, preventLinkNavigation);
-
         Configurator config = null;
-        if (params.get("filePath") != null) {
-          String filePath = (String) params.get("filePath");
-          config = pdfView.fromUri(getURI(filePath));
-        }
-        else if (params.get("pdfData") != null) {
+        if (params.get("pdfData") != null) {
           byte[] data = (byte[]) params.get("pdfData");
           config = pdfView.fromBytes(data);
         }
-
         if (config != null) {
             config
-                    .enableSwipe(getBoolean(params, "enableSwipe"))
-                    .swipeHorizontal(getBoolean(params, "swipeHorizontal"))
-                    .password(getString(params, "password"))
-                    .nightMode(getBoolean(params, "nightMode"))
-                    .autoSpacing(getBoolean(params, "autoSpacing"))
-                    .pageFling(getBoolean(params, "pageFling"))
-                    .pageSnap(getBoolean(params, "pageSnap"))
-                    .pageFitPolicy(getFitPolicy(params))
+                    .enableSwipe(true)
                     .enableAnnotationRendering(true)
-                    .linkHandler(linkHandler)
-                    .enableAntialiasing(true)
-                    .onPageChange((page, total) -> {
-                        Map<String, Object> args = new HashMap<>();
-                        args.put("page", page);
-                        args.put("total", total);
-                        methodChannel.invokeMethod("onPageChanged", args);
-                    }).onError(t -> {
+                    .enableDoubletap(true)
+                    .onError(t -> {
                         Map<String, Object> args = new HashMap<>();
                         args.put("error", t.toString());
                         methodChannel.invokeMethod("onError", args);
-                    }).onPageError((page, t) -> {
-                        Map<String, Object> args = new HashMap<>();
-                        args.put("page", page);
-                        args.put("error", t.toString());
-                        methodChannel.invokeMethod("onPageError", args);
-                    }).onRender(pages -> {
-                        Map<String, Object> args = new HashMap<>();
-                        args.put("pages", pages);
-                        methodChannel.invokeMethod("onRender", args);
-                        pdfView.fitToWidth(pages);
-                    }).enableDoubletap(true).defaultPage(getInt(params, "defaultPage")).load();
+                    }).load();
         }
     }
 
@@ -100,9 +57,6 @@ public class FlutterPDFView implements PlatformView, MethodCallHandler {
                 break;
             case "setPage":
                 setPage(methodCall, result);
-                break;
-            case "updateSettings":
-                updateSettings(methodCall, result);
                 break;
             default:
                 result.notImplemented();
@@ -127,74 +81,9 @@ public class FlutterPDFView implements PlatformView, MethodCallHandler {
         result.success(true);
     }
 
-    @SuppressWarnings("unchecked")
-    private void updateSettings(MethodCall methodCall, Result result) {
-        applySettings((Map<String, Object>) methodCall.arguments);
-        result.success(null);
-    }
-
-    private void applySettings(Map<String, Object> settings) {
-        for (String key : settings.keySet()) {
-            switch (key) {
-                case "enableSwipe":
-                    pdfView.setSwipeEnabled(getBoolean(settings, key));
-                    break;
-                case "nightMode":
-                    pdfView.setNightMode(getBoolean(settings, key));
-                    break;
-                case "pageFling":
-                    pdfView.setPageFling(getBoolean(settings, key));
-                    break;
-                case "pageSnap":
-                    pdfView.setPageSnap(getBoolean(settings, key));
-                    break;
-                case "preventLinkNavigation":
-                    final PDFLinkHandler plh = (PDFLinkHandler) this.linkHandler;
-                    plh.setPreventLinkNavigation(getBoolean(settings, key));
-                    break;
-                default:
-                    throw new IllegalArgumentException("Unknown PDFView setting: " + key);
-            }
-        }
-    }
-
     @Override
     public void dispose() {
         methodChannel.setMethodCallHandler(null);
-    }
-
-    boolean getBoolean(Map<String, Object> params, String key) {
-        return params.containsKey(key) ? (boolean) params.get(key) : false;
-    }
-
-    String getString(Map<String, Object> params, String key) {
-        return params.containsKey(key) ? (String) params.get(key) : "";
-    }
-
-    int getInt(Map<String, Object> params, String key) {
-        return params.containsKey(key) ? (int) params.get(key) : 0;
-    }
-
-    FitPolicy getFitPolicy(Map<String, Object> params) {
-        String fitPolicy = getString(params, "fitPolicy");
-        switch (fitPolicy) {
-            case "FitPolicy.WIDTH":
-                return FitPolicy.WIDTH;
-            case "FitPolicy.HEIGHT":
-                return FitPolicy.HEIGHT;
-            case "FitPolicy.BOTH":
-            default:
-                return FitPolicy.BOTH;
-        }
-    }
-
-    private Uri getURI(final String uri) {
-        Uri parsed = Uri.parse(uri);
-
-        if (parsed.getScheme() == null || parsed.getScheme().isEmpty()) {
-            return Uri.fromFile(new File(uri));
-        }
-        return parsed;
     }
 
 }
