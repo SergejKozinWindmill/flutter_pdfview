@@ -118,43 +118,23 @@ class PDFView extends StatefulWidget {
 }
 
 class _PDFViewState extends State<PDFView> {
+  static const kViewType = 'plugins.endigo.io/pdfview';
   final Completer<PDFViewController> _controller =
       Completer<PDFViewController>();
 
   @override
   Widget build(BuildContext context) {
     if (defaultTargetPlatform == TargetPlatform.android) {
-      return PlatformViewLink(
-        viewType: 'plugins.endigo.io/pdfview',
-        surfaceFactory: (
-          BuildContext context,
-          PlatformViewController controller,
-        ) {
-          return AndroidViewSurface(
-            controller: controller as AndroidViewController,
-            gestureRecognizers: widget.gestureRecognizers ??
-                const <Factory<OneSequenceGestureRecognizer>>{},
-            hitTestBehavior: PlatformViewHitTestBehavior.opaque,
-          );
-        },
-        onCreatePlatformView: (PlatformViewCreationParams params) {
-          return PlatformViewsService.initExpensiveAndroidView(
-            id: params.id,
-            viewType: 'plugins.endigo.io/pdfview',
-            layoutDirection: TextDirection.rtl,
-            creationParams: _CreationParams.fromWidget(widget).toMap(),
-            creationParamsCodec: const StandardMessageCodec(),
-          )
-            ..addOnPlatformViewCreatedListener(params.onPlatformViewCreated)
-            ..addOnPlatformViewCreatedListener((int id) {
-              _onPlatformViewCreated(id);
-            })
-            ..create();
-        },
+      return AndroidView(
+        viewType: kViewType,
+        layoutDirection: TextDirection.ltr,
+        onPlatformViewCreated: _onPlatformViewCreated,
+        creationParams: _CreationParams.fromWidget(widget).toMap(),
+        creationParamsCodec: const StandardMessageCodec(),
       );
     } else if (defaultTargetPlatform == TargetPlatform.iOS) {
       return UiKitView(
-        viewType: 'plugins.endigo.io/pdfview',
+        viewType: kViewType,
         onPlatformViewCreated: _onPlatformViewCreated,
         gestureRecognizers: widget.gestureRecognizers,
         creationParams: _CreationParams.fromWidget(widget).toMap(),
@@ -264,7 +244,6 @@ class _PDFViewSettings {
       'pageSnap': pageSnap,
       'defaultPage': defaultPage,
       'fitPolicy': fitPolicy.toString(),
-      // 'fitEachPage': fitEachPage,
       'preventLinkNavigation': preventLinkNavigation
     };
   }

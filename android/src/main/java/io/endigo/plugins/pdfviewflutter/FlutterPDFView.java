@@ -1,6 +1,7 @@
 package io.endigo.plugins.pdfviewflutter;
 
 import android.content.Context;
+import android.net.Uri;
 import android.view.View;
 import io.flutter.plugin.common.BinaryMessenger;
 import io.flutter.plugin.common.MethodCall;
@@ -8,6 +9,8 @@ import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler;
 import io.flutter.plugin.common.MethodChannel.Result;
 import io.flutter.plugin.platform.PlatformView;
+
+import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 import com.github.barteksc.pdfviewer.PDFView;
@@ -24,6 +27,10 @@ public class FlutterPDFView implements PlatformView, MethodCallHandler {
         methodChannel.setMethodCallHandler(this);
 
         Configurator config = null;
+        if (params.get("filePath") != null) {
+            String filePath = (String) params.get("filePath");
+            config = pdfView.fromUri(getURI(filePath));
+        } else
         if (params.get("pdfData") != null) {
           byte[] data = (byte[]) params.get("pdfData");
           config = pdfView.fromBytes(data);
@@ -86,4 +93,12 @@ public class FlutterPDFView implements PlatformView, MethodCallHandler {
         methodChannel.setMethodCallHandler(null);
     }
 
+    private Uri getURI(final String uri) {
+        Uri parsed = Uri.parse(uri);
+
+        if (parsed.getScheme() == null || parsed.getScheme().isEmpty()) {
+            return Uri.fromFile(new File(uri));
+        }
+        return parsed;
+    }
 }
