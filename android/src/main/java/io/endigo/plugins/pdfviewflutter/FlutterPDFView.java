@@ -3,6 +3,7 @@ package io.endigo.plugins.pdfviewflutter;
 import android.content.Context;
 import android.net.Uri;
 import android.view.View;
+
 import io.flutter.plugin.common.BinaryMessenger;
 import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
@@ -13,27 +14,37 @@ import io.flutter.plugin.platform.PlatformView;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
+
 import com.github.barteksc.pdfviewer.PDFView;
 import com.github.barteksc.pdfviewer.PDFView.Configurator;
 
 public class FlutterPDFView implements PlatformView, MethodCallHandler {
+    private static final String METHOD_CHANNEL = "plugins.endigo.io/pdfview_";
+    public static final String FILE_PATH = "filePath";
+    public static final String PDF_DATA = "pdfData";
+    public static final String ERROR = "error";
+    public static final String ON_ERROR = "onError";
+    public static final String PAGE = "page";
+    public static final String PAGE_COUNT = "pageCount";
+    public static final String CURRENT_PAGE = "currentPage";
+    public static final String SET_PAGE = "setPage";
+
     private final PDFView pdfView;
     private final MethodChannel methodChannel;
 
     @SuppressWarnings("unchecked")
     FlutterPDFView(Context context, BinaryMessenger messenger, int id, Map<String, Object> params) {
         pdfView = new PDFView(context, null);
-        methodChannel = new MethodChannel(messenger, "plugins.endigo.io/pdfview_" + id);
+        methodChannel = new MethodChannel(messenger, METHOD_CHANNEL + id);
         methodChannel.setMethodCallHandler(this);
 
         Configurator config = null;
-        if (params.get("filePath") != null) {
-            String filePath = (String) params.get("filePath");
+        if (params.get(FILE_PATH) != null) {
+            String filePath = (String) params.get(FILE_PATH);
             config = pdfView.fromUri(getURI(filePath));
-        } else
-        if (params.get("pdfData") != null) {
-          byte[] data = (byte[]) params.get("pdfData");
-          config = pdfView.fromBytes(data);
+        } else if (params.get(PDF_DATA) != null) {
+            byte[] data = (byte[]) params.get(PDF_DATA);
+            config = pdfView.fromBytes(data);
         }
         if (config != null) {
             config
@@ -42,8 +53,8 @@ public class FlutterPDFView implements PlatformView, MethodCallHandler {
                     .enableDoubletap(true)
                     .onError(t -> {
                         Map<String, Object> args = new HashMap<>();
-                        args.put("error", t.toString());
-                        methodChannel.invokeMethod("onError", args);
+                        args.put(ERROR, t.toString());
+                        methodChannel.invokeMethod(ON_ERROR, args);
                     }).load();
         }
     }
@@ -56,13 +67,13 @@ public class FlutterPDFView implements PlatformView, MethodCallHandler {
     @Override
     public void onMethodCall(MethodCall methodCall, Result result) {
         switch (methodCall.method) {
-            case "pageCount":
+            case PAGE_COUNT:
                 getPageCount(result);
                 break;
-            case "currentPage":
+            case CURRENT_PAGE:
                 getCurrentPage(result);
                 break;
-            case "setPage":
+            case SET_PAGE:
                 setPage(methodCall, result);
                 break;
             default:
@@ -80,8 +91,8 @@ public class FlutterPDFView implements PlatformView, MethodCallHandler {
     }
 
     void setPage(MethodCall call, Result result) {
-        if (call.argument("page") != null) {
-            int page = (int) call.argument("page");
+        if (call.argument(PAGE) != null) {
+            int page = call.argument(PAGE);
             pdfView.jumpTo(page);
         }
 
